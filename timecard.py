@@ -2,6 +2,20 @@
 from openpyxl import load_workbook
 import sys
 
+valid_depart = {
+    "产品组": 1,
+    "电力四川战略网省": 1,
+    "电力线损分析部": 1,
+    "电力项目管理与实施部": 1,
+    "电力研发部": 1,
+    "电力终端产品部": 1,
+    "平台架构部": 1,
+    "设计部": 1,
+    "研究院": 1
+}
+
+projects_info = {}
+
 
 def init():
     if len(sys.argv) < 2:
@@ -33,14 +47,15 @@ def init():
     salary_sheet = load_workbook("./s.xlsx")
     salary_records = setupSalary(salary_sheet)
     # go through process time
-    time_info, projects = processAllTime(time_sheet)
+    time_info, projects = processAllTime(time_sheet, salary_records)
     # print(projects)
     # print(time_info)
-    result = processSalary(
+    result, prjDepart, departTimes, departCost = processSalary(
         time_info, salary_records, working_days, initial, projects)
-    # print(projects)
-    update(time_sheet, result, initial)
-    summaryTime(projects, time_info, time_sheet)
+    # print(departCost)
+    update(time_sheet, result, initial, prjDepart, departTimes, departCost)
+    summaryTime(projects, time_info, time_sheet, departTimes, departCost)
+    verify(time_info, salary_records, result, working_days, departCost)
     print("process done!")
 
 
@@ -48,7 +63,7 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
-def processAllTime(wb):
+def processAllTime(wb, salary):
     timeRecordsSheet = wb[wb.sheetnames[0]]
     # name as key
     result = {}
@@ -66,6 +81,21 @@ def processAllTime(wb):
 
         name = nameCell.value
         # print(name)
+
+        if name not in salary:
+            #print("name not in salary", name)
+            continue
+
+        depart = salary[name]["depart"]
+        if depart not in valid_depart:
+            print("name not in valid depart", name, depart)
+            continue
+
+        projectIdCell = timeRecordsSheet.cell(row=i, column=8)
+        if isEmptyCell(projectIdCell):
+            print("empty project cell:", i, name)
+            continue
+
         if name not in result:
             result[name] = {
                 "total_hours": 0,
@@ -78,10 +108,9 @@ def processAllTime(wb):
             continue
         result[name]["total_hours"] += int(hoursCell.value)
 
-        projectIdCell = timeRecordsSheet.cell(row=i, column=8)
-        if isEmptyCell(projectIdCell):
-            print("empty project cell:", i)
-            continue
+        projectNameCell = timeRecordsSheet.cell(row=i, column=9)
+        if projectIdCell.value not in projects_info:
+            projects_info[projectIdCell.value] = projectNameCell.value
 
         if projectIdCell.value not in result[name]["projects"]:
             result[name]["projects"][projectIdCell.value] = 0
@@ -104,65 +133,94 @@ def processSalary(timeInfo, salaryInfo, workingDays, initial, projects):
     # project id as key
     result = {}
     standardHours = workingDays * 8
+    prjDepart = {}
+    departTimes = {}
+    departCostRecords = {}
     # go through time info
     for name in timeInfo:
-        # if name == "赵海林":
-        #    print("process:", name, timeInfo[name])
         if name not in salaryInfo:
-            print("can not find salary:", name)
+            #print("can not find salary:", name)
             continue
         salary = salaryInfo[name]
         totalHours = timeInfo[name]["total_hours"]
         departHours = 0
+        depart = salary["depart"]
 
         departCost = initial.copy()
         if totalHours < standardHours:
             departHours = standardHours - totalHours
-            depart = salary["depart"]
-            if depart not in result:
-                result[depart] = initial.copy()
 
-            for key in result[depart]:
-                departCost[key] = (salary[key] /
-                                   standardHours) * departHours
-                result[depart][key] += departCost[key]
+            if depart not in departCostRecords:
+                departCostRecords[depart] = initial.copy()
 
-            if depart not in projects:
-                projects[depart] = {}
-            if name not in projects[depart]:
-                projects[depart][name] = 0
-            projects[depart][name] += departHours
+            for key in departCostRecords[depart]:
+                departCost[key] = salary[key] * (departHours / standardHours)
+                departCostRecords[depart][key] += departCost[key]
 
-            # if depart == "理论组":
-            #    print(departCost)
-            #    print(name, timeInfo[name])
+            if depart not in departTimes:
+                departTimes[depart] = {}
+            if name not in departTimes[depart]:
+                departTimes[depart][name] = 0
+            departTimes[depart][name] += departHours
 
         for project in timeInfo[name]["projects"]:
             if project not in result:
                 result[project] = initial.copy()
             for key in result[project]:
-                result[project][key] += ((salary[key] - departCost[key]) /
-                                         totalHours) * timeInfo[name]["projects"][project]
-            # if project == "PBUXS-A02-27-2021-001":
-            #    print(result[project], totalHours, depart)
-    return result
+                prjCost = (salary[key] - departCost[key]) * \
+                    (timeInfo[name]["projects"][project] / totalHours)
+                result[project][key] += prjCost
+                if project not in prjDepart:
+                    prjDepart[project] = {}
+                if depart not in prjDepart[project]:
+                    prjDepart[project][depart] = {}
+                if key not in prjDepart[project][depart]:
+                    prjDepart[project][depart][key] = 0.0
+                prjDepart[project][depart][key] += prjCost
+    # print(departCostRecords)
+    return (result, prjDepart, departTimes, departCostRecords)
     # print(result)
 
 
-def update(wb, records, initial):
+def update(wb, records, initial, prjDepart, departTimes, departCostRecords):
     # write to excel
     sheetName = "time_cost"
     if sheetName in wb.sheetnames:
         del wb[sheetName]
     targetSheet = wb.create_sheet(sheetName)
-    titles = ["项目代号"] + list(initial.keys())
+    titles = ["项目代号", "项目名称", "部门"] + list(initial.keys())
     # print(titles)
     targetSheet.append(titles)
 
     for project in records:
         row = [project]
-        for i in range(1, len(titles)):
-            row.append(records[project][titles[i]])
+        if project in projects_info:
+            row.append(projects_info[project])
+        else:
+            row.append(None)
+        row.append(None)
+        # for i in range(3, len(titles)):
+        #    row.append(round(records[project][titles[i]], 2))
+        targetSheet.append(row)
+        # append depart detail
+        if project in prjDepart:
+            departCost = prjDepart[project]
+            for depart in departCost:
+                detailRow = [None, None, depart]
+                for j in range(3, len(titles)):
+                    detailRow.append(round(departCost[depart][titles[j]], 2))
+                targetSheet.append(detailRow)
+
+    for prj in departCostRecords:
+        print("project:", prj)
+        row = [prj]
+        if prj in projects_info:
+            row.append(projects_info[prj])
+        else:
+            row.append(None)
+        row.append(None)
+        for i in range(3, len(titles)):
+            row.append(round(departCostRecords[prj][titles[i]], 2))
         targetSheet.append(row)
 
     wb.save("output.xlsx")
@@ -170,41 +228,42 @@ def update(wb, records, initial):
 
 def setupSalary(wb):
     salary = {}
-    salarySheet = wb[wb.sheetnames[1]]
-    for i in range(2, salarySheet.max_row):
+    salarySheet = wb[wb.sheetnames[0]]
+    print("Salary info length:", salarySheet.max_row)
+    for i in range(2, salarySheet.max_row + 1):
         nameCell = salarySheet.cell(row=i, column=1)
         if isEmptyCell(nameCell):
             print("salary empty name cell:", i)
             continue
-        # print("process:", nameCell.value)
-        departCell = salarySheet.cell(row=i, column=9)
+        print("process:", nameCell.value)
+        departCell = salarySheet.cell(row=i, column=6)
         if isEmptyCell(departCell):
             print("salary empty depart cell:", i)
             continue
         salary[nameCell.value] = {
             "depart": departCell.value,
-            "应发工资": float(salarySheet.cell(row=i, column=12).value),
-            "养老保险_个人": float(salarySheet.cell(row=i, column=13).value),
-            "医疗保险_个人": float(salarySheet.cell(row=i, column=14).value),
-            "失业保险_个人": float(salarySheet.cell(row=i, column=15).value),
-            "大病医疗保险_个人": float(salarySheet.cell(row=i, column=16).value),
-            "住房公积金_个人": float(salarySheet.cell(row=i, column=17).value),
-            "养老保险_公司": float(salarySheet.cell(row=i, column=19).value),
-            "医疗保险_公司": float(salarySheet.cell(row=i, column=20).value),
-            "失业保险_公司": float(salarySheet.cell(row=i, column=21).value),
-            "工伤保险_公司": float(salarySheet.cell(row=i, column=22).value),
-            "生育保险_公司": float(salarySheet.cell(row=i, column=23).value),
-            "大病医疗保险_公司": float(salarySheet.cell(row=i, column=24).value),
-            "住房公积金_公司": float(salarySheet.cell(row=i, column=25).value),
-            "所得税": float(salarySheet.cell(row=i, column=27).value),
-            "实发工资": float(salarySheet.cell(row=i, column=29).value),
+            "应发工资": float(salarySheet.cell(row=i, column=9).value),
+            "养老保险_个人": float(salarySheet.cell(row=i, column=10).value),
+            "医疗保险_个人": float(salarySheet.cell(row=i, column=11).value),
+            "失业保险_个人": float(salarySheet.cell(row=i, column=12).value),
+            "大病医疗保险_个人": float(salarySheet.cell(row=i, column=13).value),
+            "住房公积金_个人": float(salarySheet.cell(row=i, column=14).value),
+            "养老保险_公司": float(salarySheet.cell(row=i, column=16).value),
+            "医疗保险_公司": float(salarySheet.cell(row=i, column=17).value),
+            "失业保险_公司": float(salarySheet.cell(row=i, column=18).value),
+            "工伤保险_公司": float(salarySheet.cell(row=i, column=19).value),
+            "生育保险_公司": float(salarySheet.cell(row=i, column=20).value),
+            "大病医疗保险_公司": float(salarySheet.cell(row=i, column=21).value),
+            "住房公积金_公司": float(salarySheet.cell(row=i, column=22).value),
+            "所得税": float(salarySheet.cell(row=i, column=24).value),
+            "实发工资": float(salarySheet.cell(row=i, column=25).value),
         }
 
     # print(salary)
     return salary
 
 
-def summaryTime(prjInfo, timeInfo, wb):
+def summaryTime(prjInfo, timeInfo, wb, departTimes, departCostRecords):
     sheetName = "time_summary"
     if sheetName in wb.sheetnames:
         del wb[sheetName]
@@ -229,9 +288,78 @@ def summaryTime(prjInfo, timeInfo, wb):
                 row += [0]
         row += [prjTotal]
         targetSheet.append(row)
+
+    for project in departTimes:
+        row = [project]
+        prj = departTimes[project]
+        prjTotal = 0
+        for i in range(1, len(titles) - 1):
+            name = titles[i]
+            if name in prj:
+                row += [prj[name]]
+                total[i] += prj[name]
+                prjTotal += prj[name]
+            else:
+                row += [0]
+        row += [prjTotal]
+        targetSheet.append(row)
+
     targetSheet.append(total)
 
     wb.save("output.xlsx")
+
+
+def verify(timeInfo, salary, processResult, workDays, departCost):
+    print("start verify....")
+    sTotal = 0.0
+    eCount = 0
+    for name in timeInfo:
+        if name in salary:
+            sTotal += salary[name]["应发工资"]
+            eCount += 1
+    print("included employee salary total:", sTotal, eCount)
+
+    pTotal = 0
+    for prj in processResult:
+        pTotal += processResult[prj]["应发工资"]
+
+    pDepartTotal = 0
+    for prj in departCost:
+        pDepartTotal += departCost[prj]["应发工资"]
+
+    print("total project spend:", pTotal + pDepartTotal, pTotal, pDepartTotal)
+
+    # cross verify project cost compute
+
+    verifyResult = {}
+    standardHours = workDays * 8
+    for project in processResult:
+        pTotal = 0.0
+        for name in timeInfo:
+            if project in timeInfo[name]["projects"]:
+                if name not in verifyResult:
+                    verifyResult[name] = {
+                        "salary": salary[name]["应发工资"],
+                        "total_hours": timeInfo[name]["total_hours"],
+                        "project_cost": 0.0,
+                        "depart_cost": 0.0,
+                        "project_detail": {}
+                    }
+                prjHours = timeInfo[name]["projects"][project]
+                totalHours = timeInfo[name]["total_hours"]
+                if totalHours < standardHours:
+                    totalHours = standardHours
+                prjRatio = prjHours / totalHours
+                prjCostShare = salary[name]["应发工资"] * prjRatio
+                pTotal += prjCostShare
+                verifyResult[name]["project_cost"] += prjCostShare
+                verifyResult[name]["project_detail"][project] = {
+                    "hours": prjHours,
+                    "cost": prjCostShare
+                }
+
+        processResult[project]["verified_cost"] = pTotal
+        #print("verify:", project, processResult[project]["应发工资"], pTotal)
 
 
 init()
