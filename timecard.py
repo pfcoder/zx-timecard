@@ -18,11 +18,6 @@ projects_info = {}
 
 
 def init():
-    if len(sys.argv) < 2:
-        print("need input working days!!!")
-        return
-    working_days = int(sys.argv[1])
-    print(working_days)
 
     initial = {
         "应发工资": 0.0,
@@ -42,20 +37,24 @@ def init():
         "实发工资": 0.0
     }
 
-    print("working days:", working_days)
-    time_sheet = load_workbook("./项目工时统计表.xlsx")
-    salary_sheet = load_workbook("./s.xlsx")
+    time_sheet = load_workbook("./input.xlsx")
+    salary_sheet = load_workbook("./input.xlsx")
+    attend_sheet = load_workbook("./kq.xlsx")
     salary_records = setupSalary(salary_sheet)
+    attend_records = setupAttend(attend_sheet)
+
+    # print(attend_records)
+    # return
     # go through process time
     time_info, projects = processAllTime(time_sheet, salary_records)
     # print(projects)
     # print(time_info)
     result, prjDepart, departTimes, departCost = processSalary(
-        time_info, salary_records, working_days, initial, projects)
+        time_info, salary_records, attend_records, initial, projects)
     # print(departCost)
     update(time_sheet, result, initial, prjDepart, departTimes, departCost)
     summaryTime(projects, time_info, time_sheet, departTimes, departCost)
-    verify(time_info, salary_records, result, working_days, departCost)
+    verify(time_info, salary_records, result, attend_records, departCost)
     print("process done!")
 
 
@@ -63,8 +62,21 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
+def setupAttend(wb):
+    attendSheet = wb[wb.sheetnames[0]]
+    result = {}
+
+    for i in range(2, attendSheet.max_row + 1):
+        nameCell = attendSheet.cell(row=i, column=1)
+        name = nameCell.value
+
+        result[name] = float(attendSheet.cell(row=i, column=12).value) * 8
+
+    return result
+
+
 def processAllTime(wb, salary):
-    timeRecordsSheet = wb[wb.sheetnames[0]]
+    timeRecordsSheet = wb[wb.sheetnames[1]]
     # name as key
     result = {}
     # project id as key
@@ -87,9 +99,9 @@ def processAllTime(wb, salary):
             continue
 
         depart = salary[name]["depart"]
-        if depart not in valid_depart:
-            print("name not in valid depart", name, depart)
-            continue
+        # if depart not in valid_depart:
+        #    print("name not in valid depart", name, depart)
+        #    continue
 
         projectIdCell = timeRecordsSheet.cell(row=i, column=8)
         if isEmptyCell(projectIdCell):
@@ -128,11 +140,11 @@ def processAllTime(wb, salary):
     return (result, projects)
 
 
-def processSalary(timeInfo, salaryInfo, workingDays, initial, projects):
+def processSalary(timeInfo, salaryInfo, attendRecord, initial, projects):
     # for name in timeInfo:
     # project id as key
     result = {}
-    standardHours = workingDays * 8
+    #standardHours = workingDays * 8
     prjDepart = {}
     departTimes = {}
     departCostRecords = {}
@@ -145,6 +157,7 @@ def processSalary(timeInfo, salaryInfo, workingDays, initial, projects):
         totalHours = timeInfo[name]["total_hours"]
         departHours = 0
         depart = salary["depart"]
+        standardHours = attendRecord[name]
 
         departCost = initial.copy()
         if totalHours < standardHours:
@@ -193,20 +206,22 @@ def update(wb, records, initial, prjDepart, departTimes, departCostRecords):
     targetSheet.append(titles)
 
     for project in records:
-        row = [project]
+        prjCode = project
+        prjName = None
         if project in projects_info:
-            row.append(projects_info[project])
-        else:
-            row.append(None)
-        row.append(None)
+            # rowShare.append(projects_info[project])
+            prjName = projects_info[project]
+        # else:
+        #    row.append(None)
+        # row.append(None)
         # for i in range(3, len(titles)):
         #    row.append(round(records[project][titles[i]], 2))
-        targetSheet.append(row)
+        # targetSheet.append(row)
         # append depart detail
         if project in prjDepart:
             departCost = prjDepart[project]
             for depart in departCost:
-                detailRow = [None, None, depart]
+                detailRow = [prjCode, prjName, depart]
                 for j in range(3, len(titles)):
                     detailRow.append(round(departCost[depart][titles[j]], 2))
                 targetSheet.append(detailRow)
@@ -236,27 +251,27 @@ def setupSalary(wb):
             print("salary empty name cell:", i)
             continue
         print("process:", nameCell.value)
-        departCell = salarySheet.cell(row=i, column=6)
+        departCell = salarySheet.cell(row=i, column=8)
         if isEmptyCell(departCell):
             print("salary empty depart cell:", i)
             continue
         salary[nameCell.value] = {
             "depart": departCell.value,
-            "应发工资": float(salarySheet.cell(row=i, column=9).value),
-            "养老保险_个人": float(salarySheet.cell(row=i, column=10).value),
-            "医疗保险_个人": float(salarySheet.cell(row=i, column=11).value),
-            "失业保险_个人": float(salarySheet.cell(row=i, column=12).value),
-            "大病医疗保险_个人": float(salarySheet.cell(row=i, column=13).value),
-            "住房公积金_个人": float(salarySheet.cell(row=i, column=14).value),
-            "养老保险_公司": float(salarySheet.cell(row=i, column=16).value),
-            "医疗保险_公司": float(salarySheet.cell(row=i, column=17).value),
-            "失业保险_公司": float(salarySheet.cell(row=i, column=18).value),
-            "工伤保险_公司": float(salarySheet.cell(row=i, column=19).value),
-            "生育保险_公司": float(salarySheet.cell(row=i, column=20).value),
-            "大病医疗保险_公司": float(salarySheet.cell(row=i, column=21).value),
-            "住房公积金_公司": float(salarySheet.cell(row=i, column=22).value),
-            "所得税": float(salarySheet.cell(row=i, column=24).value),
-            "实发工资": float(salarySheet.cell(row=i, column=25).value),
+            "应发工资": float(salarySheet.cell(row=i, column=11).value),
+            "养老保险_个人": float(salarySheet.cell(row=i, column=12).value),
+            "医疗保险_个人": float(salarySheet.cell(row=i, column=13).value),
+            "失业保险_个人": float(salarySheet.cell(row=i, column=14).value),
+            "大病医疗保险_个人": float(salarySheet.cell(row=i, column=15).value),
+            "住房公积金_个人": float(salarySheet.cell(row=i, column=16).value),
+            "养老保险_公司": float(salarySheet.cell(row=i, column=18).value),
+            "医疗保险_公司": float(salarySheet.cell(row=i, column=19).value),
+            "失业保险_公司": float(salarySheet.cell(row=i, column=20).value),
+            "工伤保险_公司": float(salarySheet.cell(row=i, column=21).value),
+            "生育保险_公司": float(salarySheet.cell(row=i, column=22).value),
+            "大病医疗保险_公司": float(salarySheet.cell(row=i, column=23).value),
+            "住房公积金_公司": float(salarySheet.cell(row=i, column=24).value),
+            "所得税": float(salarySheet.cell(row=i, column=26).value),
+            "实发工资": float(salarySheet.cell(row=i, column=27).value),
         }
 
     # print(salary)
@@ -309,7 +324,7 @@ def summaryTime(prjInfo, timeInfo, wb, departTimes, departCostRecords):
     wb.save("output.xlsx")
 
 
-def verify(timeInfo, salary, processResult, workDays, departCost):
+def verify(timeInfo, salary, processResult, attendRecord, departCost):
     print("start verify....")
     sTotal = 0.0
     eCount = 0
@@ -332,7 +347,7 @@ def verify(timeInfo, salary, processResult, workDays, departCost):
     # cross verify project cost compute
 
     verifyResult = {}
-    standardHours = workDays * 8
+    #standardHours = workDays * 8
     for project in processResult:
         pTotal = 0.0
         for name in timeInfo:
@@ -347,6 +362,7 @@ def verify(timeInfo, salary, processResult, workDays, departCost):
                     }
                 prjHours = timeInfo[name]["projects"][project]
                 totalHours = timeInfo[name]["total_hours"]
+                standardHours = attendRecord[name]
                 if totalHours < standardHours:
                     totalHours = standardHours
                 prjRatio = prjHours / totalHours
