@@ -95,7 +95,7 @@ def processAllTime(wb, salary):
         # print(name)
 
         if name not in salary:
-            #print("name not in salary", name)
+            print("name not in salary", name)
             continue
 
         depart = salary[name]["depart"]
