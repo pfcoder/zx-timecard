@@ -39,7 +39,7 @@ def init():
 
     time_sheet = load_workbook("./input.xlsx")
     salary_sheet = load_workbook("./input.xlsx")
-    attend_sheet = load_workbook("./kq.xlsx")
+    attend_sheet = load_workbook("./input.xlsx")
     salary_records = setupSalary(salary_sheet)
     attend_records = setupAttend(attend_sheet)
 
@@ -63,14 +63,14 @@ def isEmptyCell(cell):
 
 
 def setupAttend(wb):
-    attendSheet = wb[wb.sheetnames[0]]
+    attendSheet = wb[wb.sheetnames[2]]
     result = {}
 
     for i in range(2, attendSheet.max_row + 1):
         nameCell = attendSheet.cell(row=i, column=1)
         name = nameCell.value
-
-        result[name] = float(attendSheet.cell(row=i, column=12).value) * 8
+        print("attend name:", name)
+        result[name] = float(attendSheet.cell(row=i, column=11).value) * 8
 
     return result
 
