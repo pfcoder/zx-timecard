@@ -3,14 +3,57 @@ from openpyxl import load_workbook
 
 
 def init():
-    targetWb = load_workbook("./cost_input.xlsx")
-    referWb = load_workbook("./cost_refer.xlsx")
-    targetSheet = targetWb[targetWb.sheetnames[0]]
-    departPool = set(targetSheet.cell(row=1, column=1).value.split("、"))
-    targetColumn = 6
+    targetWb = load_workbook("./cost_total.xlsx")
+    # Jan
+    referWb1 = load_workbook("./cost_refer_1.xlsx")
+    # Feb
+    referWb2 = load_workbook("./cost_refer_2.xlsx")
+
+    targetColumn1 = 6
+    targetColumn2 = 8
+
+    processDepart(targetWb["汇总-DBU"], targetColumn1, referWb1)
+    processDepart(targetWb["汇总-DBU"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表MBU"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表MBU"], targetColumn2, referWb2)
+
+    processDepart(targetWb["汇总表-PBU"], targetColumn1, referWb1)
+    processDepart(targetWb["汇总表-PBU"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-业务拓展部"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-业务拓展部"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-商务拓展部"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-商务拓展部"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-研究院"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-研究院"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-总裁办合并"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-总裁办合并"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-市场部"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-市场部"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-人事行政中心"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-人事行政中心"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-董办"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-董办"], targetColumn2, referWb2)
+
+    processDepart(targetWb["预算汇总表-财务中心+法务"], targetColumn1, referWb1)
+    processDepart(targetWb["预算汇总表-财务中心+法务"], targetColumn2, referWb2)
+
+    # write out
+    targetWb.save("cost_output.xlsx")
+
+
+def processDepart(sheet, targetColumn, referWb):
     typeColumn = 4
-    for i in range(5, targetSheet.max_row + 1):
-        typeCell = targetSheet.cell(row=i, column=typeColumn)
+    departPool = set(sheet.cell(row=1, column=1).value.split("、"))
+    for i in range(5, sheet.max_row + 1):
+        typeCell = sheet.cell(row=i, column=typeColumn)
         if isEmptyCell(typeCell):
             continue
         types = typeConvert(typeCell.value.split("、"))
@@ -23,11 +66,8 @@ def init():
         print("converted:", converts)
         count = computeTypesCost(converts, referWb, departPool)
         #print("process row:", i, count)
-        targetSheet.cell(row=i, column=targetColumn).value = round(
+        sheet.cell(row=i, column=targetColumn).value = round(
             count, 2)
-
-    # write out
-    targetWb.save("cost_output.xlsx")
 
 
 def typeConvert(types):
@@ -101,8 +141,8 @@ def processSheet(sheet, typeIndex, departIndex, amountIndex, types, departs):
         if isEmptyCell(amountCell):
             continue
 
-        typeValue = typeCell.value.replace("'", "")
-        departValue = departCell.value.replace("'", "")
+        typeValue = str(typeCell.value).replace("'", "")
+        departValue = str(departCell.value).replace("'", "")
         if departValue in departs and typeValue in types:
             print("found match:", departValue, typeValue, amountCell.value)
             count += float(amountCell.value)
