@@ -63,7 +63,7 @@ def isEmptyCell(cell):
 
 
 def setupAttend(wb):
-    attendSheet = wb[wb.sheetnames[2]]
+    attendSheet = wb["考勤"]
     result = {}
 
     for i in range(2, attendSheet.max_row + 1):
@@ -76,7 +76,7 @@ def setupAttend(wb):
 
 
 def processAllTime(wb, salary):
-    timeRecordsSheet = wb[wb.sheetnames[1]]
+    timeRecordsSheet = wb["工时"]
     # name as key
     result = {}
     # project id as key
@@ -243,7 +243,7 @@ def update(wb, records, initial, prjDepart, departTimes, departCostRecords):
 
 def setupSalary(wb):
     salary = {}
-    salarySheet = wb[wb.sheetnames[0]]
+    salarySheet = wb["工资"]
     print("Salary info length:", salarySheet.max_row)
     for i in range(2, salarySheet.max_row + 1):
         nameCell = salarySheet.cell(row=i, column=1)
@@ -255,6 +255,8 @@ def setupSalary(wb):
         if isEmptyCell(departCell):
             print("salary empty depart cell:", i)
             continue
+        # print("process salary:", nameCell.value, i,
+        #      salarySheet.cell(row=1, column=3).value)
         salary[nameCell.value] = {
             "depart": departCell.value,
             "应发工资": float(salarySheet.cell(row=i, column=11).value),

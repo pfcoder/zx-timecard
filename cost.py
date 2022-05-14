@@ -5,45 +5,39 @@ from openpyxl import load_workbook
 def init():
     targetWb = load_workbook("./cost_total.xlsx")
     # Jan
-    referWb1 = load_workbook("./cost_refer_1.xlsx")
+    #referWb1 = load_workbook("./cost_refer_1.xlsx")
     # Feb
-    referWb2 = load_workbook("./cost_refer_2.xlsx")
+    #referWb2 = load_workbook("./cost_refer_2.xlsx")
+    # Mar
+    #referWb = load_workbook("./cost_refer_3.xlsx")
+    referWb = load_workbook("./cost_refer_4.xlsx")
 
-    targetColumn1 = 6
-    targetColumn2 = 8
+    #targetColumn1 = 6
+    #targetColumn2 = 8
+    #targetColumn = 10
+    targetColumn = 14
 
-    processDepart(targetWb["汇总-DBU"], targetColumn1, referWb1)
-    processDepart(targetWb["汇总-DBU"], targetColumn2, referWb2)
+    processDepart(targetWb["汇总-DBU"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表MBU"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表MBU"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表MBU"], targetColumn, referWb)
 
-    processDepart(targetWb["汇总表-PBU"], targetColumn1, referWb1)
-    processDepart(targetWb["汇总表-PBU"], targetColumn2, referWb2)
+    processDepart(targetWb["汇总表-PBU"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-业务拓展部"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-业务拓展部"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-业务拓展部"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-商务拓展部"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-商务拓展部"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-商务拓展部"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-研究院"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-研究院"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-研究院"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-总裁办合并"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-总裁办合并"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-总裁办合并"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-市场部"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-市场部"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-市场部"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-人事行政中心"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-人事行政中心"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-人事行政中心"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-董办"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-董办"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-董办"], targetColumn, referWb)
 
-    processDepart(targetWb["预算汇总表-财务中心+法务"], targetColumn1, referWb1)
-    processDepart(targetWb["预算汇总表-财务中心+法务"], targetColumn2, referWb2)
+    processDepart(targetWb["预算汇总表-财务中心+法务"], targetColumn, referWb)
 
     # write out
     targetWb.save("cost_output.xlsx")
@@ -63,7 +57,7 @@ def processDepart(sheet, targetColumn, referWb):
                 converts.extend(item)
             else:
                 converts.append(item)
-        print("converted:", converts)
+        #print("converted:", converts)
         count = computeTypesCost(converts, referWb, departPool)
         #print("process row:", i, count)
         sheet.cell(row=i, column=targetColumn).value = round(
@@ -92,22 +86,22 @@ def computeTypesCost(types, referWb, departs):
             "departIndex": 7,
             "amountIndex": 10,
         },
-        "生产成本-分项": {
+        "生产成本": {
             "typeIndex": 1,
             "departIndex": 4,
             "amountIndex": 5,
         },
-        "销售费用分项": {
-            "typeIndex": 2,
-            "departIndex": 6,
-            "amountIndex": 7,
-        },
-        "管理费用分项": {
+        "销售费用": {
             "typeIndex": 2,
             "departIndex": 5,
             "amountIndex": 6,
         },
-        "研发费用分项": {
+        "管理费用": {
+            "typeIndex": 2,
+            "departIndex": 5,
+            "amountIndex": 6,
+        },
+        "研发费用": {
             "typeIndex": 2,
             "departIndex": 5,
             "amountIndex": 6,
@@ -121,14 +115,14 @@ def computeTypesCost(types, referWb, departs):
         sheetName = referWb.sheetnames[i]
         if sheetName in config:
             c = config[sheetName]
-            print("process sheet:", sheetName)
+            #print("process sheet:", sheetName)
             count += processSheet(referWb[sheetName], c["typeIndex"], c["departIndex"],
-                                  c["amountIndex"], typeSet, departs)
+                                  c["amountIndex"], typeSet, departs, sheetName)
 
     return count
 
 
-def processSheet(sheet, typeIndex, departIndex, amountIndex, types, departs):
+def processSheet(sheet, typeIndex, departIndex, amountIndex, types, departs, sheetName):
     count = 0.0
     for i in range(2, sheet.max_row + 1):
         departCell = sheet.cell(row=i, column=departIndex)
@@ -144,10 +138,11 @@ def processSheet(sheet, typeIndex, departIndex, amountIndex, types, departs):
         typeValue = str(typeCell.value).replace("'", "")
         departValue = str(departCell.value).replace("'", "")
         if departValue in departs and typeValue in types:
-            print("found match:", departValue, typeValue, amountCell.value)
+            print("found match:", sheetName, departValue,
+                  typeValue, amountCell.value)
             count += float(amountCell.value)
 
-    print("sheet process count:", count)
+    #print("sheet process count:", count)
     return count
 
 
