@@ -2,7 +2,35 @@
 from openpyxl import load_workbook
 
 
-def init():
+def process2():
+    targetWb = load_workbook("./DBU-cost.xlsx")
+    referWb = load_workbook("./cost_refer_4.xlsx")
+
+    targetColumn = 15
+
+    processDepart(targetWb["预算汇总表-高科技"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-金融"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-大客户"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-业务拓展"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-产品解决方案"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-技术支持"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-探针"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-至安盾"], targetColumn, referWb)
+
+    processDepart(targetWb["预算汇总表-业务支持"], targetColumn, referWb)
+
+    # write out
+    targetWb.save("cost_output2.xlsx")
+
+
+def process1():
     targetWb = load_workbook("./cost_total.xlsx")
     # Jan
     #referWb1 = load_workbook("./cost_refer_1.xlsx")
@@ -150,4 +178,4 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
-init()
+process2()
