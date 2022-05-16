@@ -5,26 +5,11 @@ from openpyxl import load_workbook
 def process2():
     targetWb = load_workbook("./DBU-cost.xlsx")
     referWb = load_workbook("./cost_refer_4.xlsx")
-
     targetColumn = 15
 
-    processDepart(targetWb["预算汇总表-高科技"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-金融"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-大客户"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-业务拓展"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-产品解决方案"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-技术支持"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-探针"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-至安盾"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-业务支持"], targetColumn, referWb)
+    sheets = ["预算汇总表-高科技", "预算汇总表-金融", "预算汇总表-大客户", "预算汇总表-业务拓展",
+              "预算汇总表-产品解决方案", "预算汇总表-技术支持", "预算汇总表-探针", "预算汇总表-至安盾", "预算汇总表-业务支持"]
+    generate(sheets, targetColumn, targetWb, referWb)
 
     # write out
     targetWb.save("cost_output2.xlsx")
@@ -32,43 +17,20 @@ def process2():
 
 def process1():
     targetWb = load_workbook("./cost_total.xlsx")
-    # Jan
-    #referWb1 = load_workbook("./cost_refer_1.xlsx")
-    # Feb
-    #referWb2 = load_workbook("./cost_refer_2.xlsx")
-    # Mar
-    #referWb = load_workbook("./cost_refer_3.xlsx")
     referWb = load_workbook("./cost_refer_4.xlsx")
-
-    #targetColumn1 = 6
-    #targetColumn2 = 8
-    #targetColumn = 10
     targetColumn = 14
 
-    processDepart(targetWb["汇总-DBU"], targetColumn, referWb)
+    sheets = ["汇总-DBU", "预算汇总表MBU", "汇总表-PBU", "预算汇总表-业务拓展部", "预算汇总表-商务拓展部", "预算汇总表-研究院",
+              "预算汇总表-总裁办合并", "预算汇总表-市场部", "预算汇总表-人事行政中心", "预算汇总表-董办", "预算汇总表-财务中心+法务"]
 
-    processDepart(targetWb["预算汇总表MBU"], targetColumn, referWb)
-
-    processDepart(targetWb["汇总表-PBU"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-业务拓展部"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-商务拓展部"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-研究院"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-总裁办合并"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-市场部"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-人事行政中心"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-董办"], targetColumn, referWb)
-
-    processDepart(targetWb["预算汇总表-财务中心+法务"], targetColumn, referWb)
-
+    generate(sheets, targetColumn, targetWb, referWb)
     # write out
     targetWb.save("cost_output.xlsx")
+
+
+def generate(sheets, targetColumn, targetWb, referWb):
+    for sheet in sheets:
+        processDepart(targetWb[sheet], targetColumn, referWb)
 
 
 def processDepart(sheet, targetColumn, referWb):
