@@ -140,4 +140,4 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
-process2()
+process1()

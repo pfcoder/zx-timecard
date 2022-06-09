@@ -2,23 +2,10 @@
 from openpyxl import load_workbook
 import sys
 
-valid_depart = {
-    "产品组": 1,
-    "电力四川战略网省": 1,
-    "电力线损分析部": 1,
-    "电力项目管理与实施部": 1,
-    "电力研发部": 1,
-    "电力终端产品部": 1,
-    "平台架构部": 1,
-    "设计部": 1,
-    "研究院": 1
-}
-
 projects_info = {}
 
 
 def init():
-
     initial = {
         "应发工资": 0.0,
         "养老保险_个人": 0.0,
@@ -37,29 +24,80 @@ def init():
         "实发工资": 0.0
     }
 
-    time_sheet = load_workbook("./input.xlsx")
-    salary_sheet = load_workbook("./input.xlsx")
-    attend_sheet = load_workbook("./input.xlsx")
-    salary_records = setupSalary(salary_sheet)
-    attend_records = setupAttend(attend_sheet)
+    sheet = load_workbook("./input.xlsx")
 
-    # print(attend_records)
-    # return
-    # go through process time
-    time_info, projects = processAllTime(time_sheet, salary_records)
-    # print(projects)
-    # print(time_info)
+    # build salary map info
+    salary_records = setupSalary(sheet)
+    # build attend map info
+    attend_records = setupAttend(sheet)
+
+    # go through process working time
+    time_info, projects = processAllTime(sheet, salary_records)
     result, prjDepart, departTimes, departCost = processSalary(
         time_info, salary_records, attend_records, initial, projects)
-    # print(departCost)
-    update(time_sheet, result, initial, prjDepart, departTimes, departCost)
-    summaryTime(projects, time_info, time_sheet, departTimes, departCost)
+
+    update(sheet, result, initial, prjDepart, departTimes, departCost)
+    summaryTime(projects, time_info, sheet, departTimes, departCost)
     verify(time_info, salary_records, result, attend_records, departCost)
     print("process done!")
 
 
 def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
+
+
+# setup a employee name to depart and salary infos mapping
+
+
+def setupSalary(wb):
+    salary = {}
+    salarySheet = wb["工资"]
+    #print("Salary info length:", salarySheet.max_row)
+    for i in range(2, salarySheet.max_row + 1):
+        nameCell = salarySheet.cell(row=i, column=1)
+        if isEmptyCell(nameCell):
+            print("salary empty name cell:", i)
+            continue
+        print("process:", nameCell.value)
+        departCell = salarySheet.cell(row=i, column=8)
+        if isEmptyCell(departCell):
+            print("salary empty depart cell:", i)
+            continue
+        # print("process salary:", nameCell.value, i,
+        #      salarySheet.cell(row=1, column=3).value)
+
+        # check if name already exist
+        if nameCell.value in salary:
+            print("salary name exist:", nameCell.value)
+            # panic
+            sys.exit(1)
+
+        salary[nameCell.value] = {
+            "depart": departCell.value,
+            "应发工资": float(salarySheet.cell(row=i, column=11).value),
+            "养老保险_个人": float(salarySheet.cell(row=i, column=12).value),
+            "医疗保险_个人": float(salarySheet.cell(row=i, column=13).value),
+            "失业保险_个人": float(salarySheet.cell(row=i, column=14).value),
+            "大病医疗保险_个人": float(salarySheet.cell(row=i, column=15).value),
+            "住房公积金_个人": float(salarySheet.cell(row=i, column=16).value),
+            "养老保险_公司": float(salarySheet.cell(row=i, column=18).value),
+            "医疗保险_公司": float(salarySheet.cell(row=i, column=19).value),
+            "失业保险_公司": float(salarySheet.cell(row=i, column=20).value),
+            "工伤保险_公司": float(salarySheet.cell(row=i, column=21).value),
+            "生育保险_公司": float(salarySheet.cell(row=i, column=22).value),
+            "大病医疗保险_公司": float(salarySheet.cell(row=i, column=23).value),
+            "住房公积金_公司": float(salarySheet.cell(row=i, column=24).value),
+            "所得税": float(salarySheet.cell(row=i, column=26).value),
+            "实发工资": float(salarySheet.cell(row=i, column=27).value),
+        }
+
+    # print(salary)
+    return salary
+
+
+# compute all employee's attendance hours
+# sheet column 11 is attendance days of current month
+# return a map of employee name to attendance hours(month)
 
 
 def setupAttend(wb):
@@ -99,9 +137,6 @@ def processAllTime(wb, salary):
             continue
 
         depart = salary[name]["depart"]
-        # if depart not in valid_depart:
-        #    print("name not in valid depart", name, depart)
-        #    continue
 
         projectIdCell = timeRecordsSheet.cell(row=i, column=8)
         if isEmptyCell(projectIdCell):
@@ -239,45 +274,6 @@ def update(wb, records, initial, prjDepart, departTimes, departCostRecords):
         targetSheet.append(row)
 
     wb.save("output.xlsx")
-
-
-def setupSalary(wb):
-    salary = {}
-    salarySheet = wb["工资"]
-    print("Salary info length:", salarySheet.max_row)
-    for i in range(2, salarySheet.max_row + 1):
-        nameCell = salarySheet.cell(row=i, column=1)
-        if isEmptyCell(nameCell):
-            print("salary empty name cell:", i)
-            continue
-        print("process:", nameCell.value)
-        departCell = salarySheet.cell(row=i, column=8)
-        if isEmptyCell(departCell):
-            print("salary empty depart cell:", i)
-            continue
-        # print("process salary:", nameCell.value, i,
-        #      salarySheet.cell(row=1, column=3).value)
-        salary[nameCell.value] = {
-            "depart": departCell.value,
-            "应发工资": float(salarySheet.cell(row=i, column=11).value),
-            "养老保险_个人": float(salarySheet.cell(row=i, column=12).value),
-            "医疗保险_个人": float(salarySheet.cell(row=i, column=13).value),
-            "失业保险_个人": float(salarySheet.cell(row=i, column=14).value),
-            "大病医疗保险_个人": float(salarySheet.cell(row=i, column=15).value),
-            "住房公积金_个人": float(salarySheet.cell(row=i, column=16).value),
-            "养老保险_公司": float(salarySheet.cell(row=i, column=18).value),
-            "医疗保险_公司": float(salarySheet.cell(row=i, column=19).value),
-            "失业保险_公司": float(salarySheet.cell(row=i, column=20).value),
-            "工伤保险_公司": float(salarySheet.cell(row=i, column=21).value),
-            "生育保险_公司": float(salarySheet.cell(row=i, column=22).value),
-            "大病医疗保险_公司": float(salarySheet.cell(row=i, column=23).value),
-            "住房公积金_公司": float(salarySheet.cell(row=i, column=24).value),
-            "所得税": float(salarySheet.cell(row=i, column=26).value),
-            "实发工资": float(salarySheet.cell(row=i, column=27).value),
-        }
-
-    # print(salary)
-    return salary
 
 
 def summaryTime(prjInfo, timeInfo, wb, departTimes, departCostRecords):
