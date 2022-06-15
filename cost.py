@@ -2,10 +2,23 @@
 from openpyxl import load_workbook
 
 
+def process3():
+    targetWb = load_workbook("./DBU-1-5-cost.xlsx")
+    referWb = load_workbook("./cost-refer-1-5.xlsx")
+    targetColumn = 12
+
+    sheets = ["预算汇总表-高科技", "预算汇总表-金融", "预算汇总表-大客户", "预算汇总表-业务拓展",
+              "预算汇总表-产品解决方案", "预算汇总表-生产部", "预算汇总表-技术支持", "预算汇总表-探针", "预算汇总表-至安盾", "预算汇总表-至安盾二部", "预算汇总表-业务支持"]
+    generate(sheets, targetColumn, targetWb, referWb)
+
+    # write out
+    targetWb.save("cost_output1-5.xlsx")
+
+
 def process2():
     targetWb = load_workbook("./DBU-cost.xlsx")
-    referWb = load_workbook("./cost_refer_4.xlsx")
-    targetColumn = 15
+    referWb = load_workbook("./cost_refer_5.xlsx")
+    targetColumn = 17
 
     sheets = ["预算汇总表-高科技", "预算汇总表-金融", "预算汇总表-大客户", "预算汇总表-业务拓展",
               "预算汇总表-产品解决方案", "预算汇总表-技术支持", "预算汇总表-探针", "预算汇总表-至安盾", "预算汇总表-业务支持"]
@@ -17,8 +30,8 @@ def process2():
 
 def process1():
     targetWb = load_workbook("./cost_total.xlsx")
-    referWb = load_workbook("./cost_refer_4.xlsx")
-    targetColumn = 14
+    referWb = load_workbook("./cost_refer_5.xlsx")
+    targetColumn = 16
 
     sheets = ["汇总-DBU", "预算汇总表MBU", "汇总表-PBU", "预算汇总表-业务拓展部", "预算汇总表-商务拓展部", "预算汇总表-研究院",
               "预算汇总表-总裁办合并", "预算汇总表-市场部", "预算汇总表-人事行政中心", "预算汇总表-董办", "预算汇总表-财务中心+法务"]
@@ -140,4 +153,4 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
-process1()
+process3()
