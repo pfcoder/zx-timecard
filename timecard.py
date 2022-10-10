@@ -4,6 +4,11 @@ import sys
 
 projects_info = {}
 
+# this set of users use 7 as 8
+specials = {"顾明璇", "田玲杰", "张孟祎", "郝跃红"}
+#excludes = {"李庆乐"}
+excludes = {}
+
 
 def init():
     initial = {
@@ -120,6 +125,8 @@ def processAllTime(wb, salary):
     # project id as key
     projects = {}
 
+    missSalaryNames = {}
+
     # print(timeRecordsSheet.cell(row=2, column=2).value)
     # go through timeRecordsSheet row by row
     for i in range(2, timeRecordsSheet.max_row + 1):
@@ -131,9 +138,13 @@ def processAllTime(wb, salary):
 
         name = nameCell.value
         # print(name)
+        if name in excludes:
+            print("exclude:", name)
+            continue
 
         if name not in salary:
             print("name not in salary", name)
+            missSalaryNames[name] = 1
             continue
 
         depart = salary[name]["depart"]
@@ -153,7 +164,12 @@ def processAllTime(wb, salary):
         if isEmptyCell(hoursCell):
             print("empty hours cell:", i)
             continue
-        result[name]["total_hours"] += int(hoursCell.value)
+        hours = int(hoursCell.value)
+        if name in specials and hours == 7:
+            print("special hours change to 8:", name, hours)
+            hours = 8
+
+        result[name]["total_hours"] += hours
 
         projectNameCell = timeRecordsSheet.cell(row=i, column=9)
         if projectIdCell.value not in projects_info:
@@ -162,7 +178,7 @@ def processAllTime(wb, salary):
         if projectIdCell.value not in result[name]["projects"]:
             result[name]["projects"][projectIdCell.value] = 0
 
-        result[name]["projects"][projectIdCell.value] += int(hoursCell.value)
+        result[name]["projects"][projectIdCell.value] += hours
 
         if projectIdCell.value not in projects:
             # employee name as key (should use employee id, TODO)
@@ -170,8 +186,9 @@ def processAllTime(wb, salary):
 
         if name not in projects[projectIdCell.value]:
             projects[projectIdCell.value][name] = 0
-        projects[projectIdCell.value][name] += int(hoursCell.value)
+        projects[projectIdCell.value][name] += hours
 
+    print("miss salary names:", missSalaryNames.keys())
     return (result, projects)
 
 
@@ -186,12 +203,17 @@ def processSalary(timeInfo, salaryInfo, attendRecord, initial, projects):
     # go through time info
     for name in timeInfo:
         if name not in salaryInfo:
-            #print("can not find salary:", name)
+            print("can not find salary:", name)
             continue
         salary = salaryInfo[name]
         totalHours = timeInfo[name]["total_hours"]
         departHours = 0
         depart = salary["depart"]
+
+        if name not in attendRecord:
+            print("can not find attend:", name)
+            continue
+
         standardHours = attendRecord[name]
 
         departCost = initial.copy()
