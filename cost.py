@@ -17,8 +17,8 @@ def process3():
 
 def process2():
     targetWb = load_workbook("./DBU-cost.xlsx")
-    referWb = load_workbook("./cost_refer_8.xlsx")
-    targetColumn = 25
+    referWb = load_workbook("./cost_dbu_refer_12.xlsx")
+    targetColumn = 35
 
     sheets = ["预算汇总表-高科技", "预算汇总表-金融", "预算汇总表-大客户", "预算汇总表-业务拓展",
               "预算汇总表-产品解决方案", "预算汇总表-技术支持", "预算汇总表-探针", "预算汇总表-至安盾1", "预算汇总表-至安盾2", "预算汇总表-业务支持", "预算汇总表-生产部"]
@@ -27,11 +27,23 @@ def process2():
     # write out
     targetWb.save("cost_output2.xlsx")
 
+def processDBU2022():
+    targetWb = load_workbook("./dbu-12.xlsx")
+    referWb = load_workbook("./2022-dbu.xlsx")
+    targetColumn = 39
+
+    sheets = ["预算汇总表-高科技", "预算汇总表-金融", "预算汇总表-大客户", "预算汇总表-业务拓展",
+              "预算汇总表-产品解决方案", "预算汇总表-技术支持", "预算汇总表-探针", "预算汇总表-至安盾1", "预算汇总表-至安盾2", "预算汇总表-业务支持", "预算汇总表-生产部"]
+    generate(sheets, targetColumn, targetWb, referWb)
+
+    # write out
+    targetWb.save("cost_output_dbu_2022.xlsx")
+
 
 def process1():
     targetWb = load_workbook("./cost_total.xlsx")
-    referWb = load_workbook("./cost_refer_8.xlsx")
-    targetColumn = 24
+    referWb = load_workbook("./2022.xlsx")
+    targetColumn = 38
 
     sheets = ["汇总-DBU", "预算汇总表MBU", "汇总表-PBU", "预算汇总表-业务拓展部", "预算汇总表-商务拓展部", "预算汇总表-研究院",
               "预算汇总表-总裁办合并", "预算汇总表-市场部", "预算汇总表-人事行政中心", "预算汇总表-董办", "预算汇总表-财务中心+法务"]
@@ -62,7 +74,7 @@ def processDepart(sheet, targetColumn, referWb):
                 converts.append(item)
         #print("converted:", converts)
         count = computeTypesCost(converts, referWb, departPool)
-        #print("process row:", i, count)
+        print("process row:", i, count)
         sheet.cell(row=i, column=targetColumn).value = round(
             count, 2)
 
@@ -153,4 +165,4 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
-process2()
+processDBU2022()
