@@ -40,6 +40,7 @@ def init():
     personalMap = {}
     nameNotInTimeInfo = {}
     nameNotInAttendRecords = {}
+    prjDepartMap = {}
 
     for name in salary_records:
         totalAttendHours = sum(attend_records[name])
@@ -82,6 +83,11 @@ def init():
                         perHourCost
                     projectCostMap[project] += prjCost
                     personalProjectCost += prjCost
+                    if project not in prjDepartMap:
+                        prjDepartMap[project] = {}
+                    if departName not in prjDepartMap[project]:
+                        prjDepartMap[project][departName] = 0.0
+                    prjDepartMap[project][departName] += prjCost
 
             personalMap[name] = {
                 "depart_cost": departCost,
@@ -105,19 +111,24 @@ def init():
     for name in personalMap:
         item = personalMap[name]
         row = [name, salary_records[name]["depart"], sum(attend_records[name]), item["depart_hours"], item["project_hours"],
-               round(item["depart_cost"], 2), round(item["project_cost"], 2), salary_records[name]["奖金"]]
+               round(item["depart_cost"], 4), round(item["project_cost"], 4), salary_records[name]["奖金"]]
         personalSheet.append(row)
 
     projectSheet = sheet.create_sheet("项目汇总")
-    titles = ["项目", "成本"]
+    titles = ["项目编码", "项目名称", "部门", "部门成本"]
 
     projectSheet.append(titles)
-    for project in projectCostMap:
-        row = [project, round(projectCostMap[project], 2)]
-        projectSheet.append(row)
+    # for project in projectCostMap:
+    #     row = [project, round(projectCostMap[project], 2)]
+    #     projectSheet.append(row)
+    for project in prjDepartMap:
+        for depart in prjDepartMap[project]:
+            row = [project, projects_info[project], depart, round(
+                prjDepartMap[project][depart], 4)]
+            projectSheet.append(row)
 
     for depart in departCostMap:
-        row = [depart, round(departCostMap[depart], 2)]
+        row = [depart, 0, 0, round(departCostMap[depart], 4)]
         projectSheet.append(row)
 
     sheet.save("year_output.xlsx")

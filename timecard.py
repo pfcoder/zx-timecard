@@ -6,8 +6,9 @@ projects_info = {}
 
 # this set of users use 7 as 8
 specials = {"顾明璇", "田玲杰", "张孟祎", "郝跃红"}
-#excludes = {"李庆乐"}
+# excludes = {"李庆乐"}
 excludes = {}
+ignore_salary = {}
 
 
 def init():
@@ -57,7 +58,7 @@ def isEmptyCell(cell):
 def setupSalary(wb):
     salary = {}
     salarySheet = wb["工资"]
-    #print("Salary info length:", salarySheet.max_row)
+    # print("Salary info length:", salarySheet.max_row)
     for i in range(2, salarySheet.max_row + 1):
         nameCell = salarySheet.cell(row=i, column=1)
         if isEmptyCell(nameCell):
@@ -196,7 +197,7 @@ def processSalary(timeInfo, salaryInfo, attendRecord, initial, projects):
     # for name in timeInfo:
     # project id as key
     result = {}
-    #standardHours = workingDays * 8
+    # standardHours = workingDays * 8
     prjDepart = {}
     departTimes = {}
     departCostRecords = {}
@@ -207,6 +208,12 @@ def processSalary(timeInfo, salaryInfo, attendRecord, initial, projects):
             continue
         salary = salaryInfo[name]
         totalHours = timeInfo[name]["total_hours"]
+
+        if totalHours == 0:
+            print("name 0 hours:", name)
+            ignore_salary[name] = 1
+            continue
+
         departHours = 0
         depart = salary["depart"]
 
@@ -349,7 +356,7 @@ def verify(timeInfo, salary, processResult, attendRecord, departCost):
     sTotal = 0.0
     eCount = 0
     for name in timeInfo:
-        if name in salary:
+        if name in salary and name not in ignore_salary:
             sTotal += salary[name]["应发工资"]
             eCount += 1
     print("included employee salary total:", sTotal, eCount)
@@ -367,10 +374,12 @@ def verify(timeInfo, salary, processResult, attendRecord, departCost):
     # cross verify project cost compute
 
     verifyResult = {}
-    #standardHours = workDays * 8
+    # standardHours = workDays * 8
     for project in processResult:
         pTotal = 0.0
         for name in timeInfo:
+            if name in ignore_salary:
+                continue
             if project in timeInfo[name]["projects"]:
                 if name not in verifyResult:
                     verifyResult[name] = {
@@ -395,7 +404,7 @@ def verify(timeInfo, salary, processResult, attendRecord, departCost):
                 }
 
         processResult[project]["verified_cost"] = pTotal
-        #print("verify:", project, processResult[project]["应发工资"], pTotal)
+        # print("verify:", project, processResult[project]["应发工资"], pTotal)
 
 
 init()

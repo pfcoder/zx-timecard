@@ -25,16 +25,16 @@ def process3():
 
 
 def process2():
-    targetWb = load_workbook("./DBU-cost.xlsx")
-    referWb = load_workbook("./cost_dbu_refer_12.xlsx")
-    targetColumn = 35
+    targetWb = load_workbook("./DBU-2023-total.xlsx")
+    referWb = load_workbook("./2023-q1.xlsx")
+    targetColumn = 7
 
-    sheets = ["预算汇总表-高科技", "预算汇总表-金融", "预算汇总表-大客户", "预算汇总表-业务拓展",
-              "预算汇总表-产品解决方案", "预算汇总表-技术支持", "预算汇总表-探针", "预算汇总表-至安盾1", "预算汇总表-至安盾2", "预算汇总表-业务支持", "预算汇总表-生产部"]
+    sheets = ["DBU汇总", "高科技销售部", "金融销售部", "政法销售部",
+              "军工和大客户销售部", "通信销售部", "业务拓展组", "产品部", "解决方案一部", "解决方案三部", "生产部", "技术支持部", "产品开发一部", "产品开发二部", "产品开发三部", "技术研究部", "安全产品事业部-业务支持"]
     generate(sheets, targetColumn, targetWb, referWb)
 
     # write out
-    targetWb.save("cost_output2.xlsx")
+    targetWb.save("DBU_2023_cost_output.xlsx")
 
 
 def processDBU2022():
@@ -51,31 +51,38 @@ def processDBU2022():
 
 
 def process1():
-    targetWb = load_workbook("./cost_total.xlsx")
-    referWb = load_workbook("./2022.xlsx")
-    targetColumn = 38
+    targetWb = load_workbook("./2023-total.xlsx")
+    referWb = load_workbook("./2023-q1.xlsx")
+    targetColumn = 7
 
-    sheets = ["汇总-DBU", "预算汇总表MBU", "汇总表-PBU", "预算汇总表-业务拓展部", "预算汇总表-商务拓展部", "预算汇总表-研究院",
-              "预算汇总表-总裁办合并", "预算汇总表-市场部", "预算汇总表-人事行政中心", "预算汇总表-董办", "预算汇总表-财务中心+法务"]
+    sheets = ["PBU", "DBU", "MBU", "研究院", "研发管理部", "项目管理与实施部",
+              "总裁办", "市场部", "战略研究部", "财务+内审", "人事行政中心", "董办"]
 
     generate(sheets, targetColumn, targetWb, referWb)
     # write out
-    targetWb.save("cost_output.xlsx")
+    targetWb.save("2023_cost_output.xlsx")
 
 
 def generate(sheets, targetColumn, targetWb, referWb):
     for sheet in sheets:
+        print("process sheet:", sheet)
         processDepart(targetWb[sheet], targetColumn, referWb)
 
 
 def processDepart(sheet, targetColumn, referWb):
-    typeColumn = 4
-    departPool = set(sheet.cell(row=1, column=1).value.split("、"))
+    typeColumn = 2
+    departPool = set(sheet.cell(row=1, column=2).value.split("、"))
     for i in range(5, sheet.max_row + 1):
         typeCell = sheet.cell(row=i, column=typeColumn)
         if isEmptyCell(typeCell):
             continue
-        types = typeConvert(typeCell.value.split("、"))
+        # print("typeCell vaule:", typeCell.value)
+        # make sure typeCell.value to string
+
+        types = typeConvert(str(typeCell.value).split("、"))
+        if typeCell.value == "500104…550109、660104…660109、660204…660209、660404…660409、28010204…28010209":
+            print("types:", types)
+
         converts = []
         for item in types:
             if isinstance(item, list):
@@ -84,7 +91,7 @@ def processDepart(sheet, targetColumn, referWb):
                 converts.append(item)
         # print("converted:", converts)
         count = computeTypesCost(converts, referWb, departPool)
-        print("process row:", i, count)
+        # print("process row:", i, count)
         sheet.cell(row=i, column=targetColumn).value = round(
             count, 2)
 
@@ -106,29 +113,24 @@ def checkRange(item):
 
 def computeTypesCost(types, referWb, departs):
     config = {
-        "收入": {
-            "typeIndex": 2,
-            "departIndex": 7,
-            "amountIndex": 10,
-        },
         "生产成本": {
-            "typeIndex": 1,
+            "typeIndex": 2,
             "departIndex": 4,
-            "amountIndex": 5,
+            "amountIndex": 6,
         },
         "销售费用": {
             "typeIndex": 2,
-            "departIndex": 5,
+            "departIndex": 4,
             "amountIndex": 6,
         },
         "管理费用": {
             "typeIndex": 2,
-            "departIndex": 5,
+            "departIndex": 4,
             "amountIndex": 6,
         },
         "研发费用": {
             "typeIndex": 2,
-            "departIndex": 5,
+            "departIndex": 4,
             "amountIndex": 6,
         }
     }
@@ -175,4 +177,4 @@ def isEmptyCell(cell):
     return cell.value is None or cell.value == ""
 
 
-processDBU2022()
+process1()
